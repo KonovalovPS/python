@@ -64,7 +64,7 @@ def grep(lines, params):
                         output_lines[output_index] = lines[j - 1]
                 end = j                         #переменная для того, чтобы не брать строки
                                                 #из других блоков
-        else:
+        else:               #аналогичный блок, только для инверта
           
             if  not big_tomato(new_line, params.pattern):
                 appropriate.append(idx)
