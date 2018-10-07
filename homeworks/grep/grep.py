@@ -46,12 +46,9 @@ def search_stars(line, pattern, params):                  #функция пои
 
     
 def grep(lines, params):
-    count = 0
-    end = 0
     before = max(params.before_context, params.context)
     after = max(params.after_context, params.context)
-    appropriate = []                #массив индексов строк, которые подошли под описание для того, 
-                                    #чтобы впоследствии правильно поставить "-" или ":"
+
     main_counter = 0                                
     dic = {}                                   
     after_count = 1                 #переменная, позволяющая добавить after количество строк
@@ -90,28 +87,10 @@ def grep(lines, params):
             else:
                 decorator = ''
             output(decorator + dic[idx])
-            last_true_idx += 1
-        
-                    
-        # if search_stars(line, params.pattern, params):
-            # appropriate.append(idx)
-            # for elem in arr:
-                # output_lines.update(elem)
-            # after_count = after   
+            last_true_idx += 1 
 
     if params.count == True:
         output(str(main_counter))
-    
-    # else:
-        # for key in output_lines:   
-            # if params.line_number == True:
-                # decorator = ':'
-                # if key not in appropriate:
-                    # decorator = '-'
-                # decorator = str(key) + decorator
-            # else:
-                # decorator = ''
-            # output(decorator + output_lines[key])
              
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
