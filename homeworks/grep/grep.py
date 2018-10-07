@@ -50,44 +50,68 @@ def grep(lines, params):
     end = 0
     before = max(params.before_context, params.context)
     after = max(params.after_context, params.context)
-    output_lines = {}               #словарь, в котором будут строки на выход
-    output_index = 1
     appropriate = []                #массив индексов строк, которые подошли под описание для того, 
                                     #чтобы впоследствии правильно поставить "-" или ":"
-    arr = []                                    
-    after_count = 0                 #переменная, позволяющая добавить after количество строк
+    main_counter = 0                                
+    dic = {}                                   
+    after_count = 1                 #переменная, позволяющая добавить after количество строк
                                     #после подходящей под описание строки
+    last_true_idx = 0
     for idx, line in enumerate(lines, start = 1):
     
-        if after_count:
-            output_lines.update({idx: line})
-            after_count -= 1
+        after_count -= 1
             
         line = line.rstrip()
         
-        arr.append({idx: line})
-        if len(arr) > before + 1:
-            arr = arr[1:]
+        dic.update({idx: line})     
+        if len(dic) > before + 1:
+            dic.pop(idx - before - 1)
+        
+        if search_stars(line, params.pattern, params):      
+            for each in dic:
+                if each > last_true_idx:
+                    if params.line_number == True:
+                        decorator = ':'
+                        if each != idx:
+                            decorator = '-'
+                        decorator = str(each) + decorator
+                    else:
+                        decorator = ''
+                    main_counter += 1
+                    if params.count == False:
+                        output(decorator + dic[each])
+            after_count = after + 1
+            last_true_idx = idx
             
-        if search_stars(line, params.pattern, params):
-            appropriate.append(idx)
-            for elem in arr:
-                output_lines.update(elem)
-            after_count = after   
-
-    if params.count == True:
-        output(str(len(appropriate)))
-    
-    else:
-        for key in output_lines:   
+        if 0 < after_count <= after:
             if params.line_number == True:
-                decorator = ':'
-                if key not in appropriate:
-                    decorator = '-'
-                decorator = str(key) + decorator
+                decorator = '-'
+                decorator = str(idx) + decorator
             else:
                 decorator = ''
-            output(decorator + output_lines[key])
+            output(decorator + dic[idx])
+            last_true_idx += 1
+        
+                    
+        # if search_stars(line, params.pattern, params):
+            # appropriate.append(idx)
+            # for elem in arr:
+                # output_lines.update(elem)
+            # after_count = after   
+
+    if params.count == True:
+        output(str(main_counter))
+    
+    # else:
+        # for key in output_lines:   
+            # if params.line_number == True:
+                # decorator = ':'
+                # if key not in appropriate:
+                    # decorator = '-'
+                # decorator = str(key) + decorator
+            # else:
+                # decorator = ''
+            # output(decorator + output_lines[key])
              
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
