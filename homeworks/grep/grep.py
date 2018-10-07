@@ -2,13 +2,11 @@
 import argparse
 import sys
 
-k = 0
-
 def output(line):
     print(line)
 
-def tomato(line, pattern):                      #функция поиска строки(паттерна)                                 
-    global k
+    
+def search(line, pattern, k, params):                      #функция поиска строки(паттерна)                                 
 
     for i in range(len(line) - len(pattern) + 1):                   
         counter = 0
@@ -17,69 +15,70 @@ def tomato(line, pattern):                      #функция поиска с�
             if pattern[j] == line[i + j] or pattern[j] == '?':
                 counter += 1
                 
-            if counter == len(pattern):
-                k = i + j
-                return True
+        if counter == len(pattern):
+            k = i + j
+            return {'result': True, 'k': k}
 
-def big_tomato(line, pattern):                  #функция поиска строки(паттерна)
-    pattern = pattern.strip('*')                #с учетом звездочек
+    return {'result': False, 'k': k}
+
+    
+def search_stars(line, pattern, params):                  #функция поиска строки(паттерна)
+                                                          #с учетом звездочек 
+    if params.ignore_case == True:
+        line = line.lower()
+        params.pattern = params.pattern.lower()
+        
+    pattern = pattern.strip('*')                            
     if pattern == '':
         return True
-    j = 0
+    k = 0
     arr = pattern.split('*')
     for i in range(len(arr)):
-        if not tomato(line[j:], arr[i]):
-            return False
-        j = k                
-        
+        if not search(line[k:], arr[i], k, params)['result']:            
+            if params.invert == False:
+                return False      
+            if params.invert == True:
+                return True
+    
+    if params.invert == True:
+        return False
     return True
-            
 
+    
 def grep(lines, params):
     count = 0
     end = 0
     before = max(params.before_context, params.context)
     after = max(params.after_context, params.context)
-    appropriate = []                            #массив, содержащий индексы, подходящих строк
-    output_lines = {}                           #словарь, в котором будут строки на выход
+    output_lines = {}               #словарь, в котором будут строки на выход
     output_index = 1
-    
+    appropriate = []                #массив индексов строк, которые подошли под описание для того, 
+                                    #чтобы впоследствии правильно поставить "-" или ":"
+    arr = []                                    
+    after_count = 0                 #переменная, позволяющая добавить after количество строк
+                                    #после подходящей под описание строки
     for idx, line in enumerate(lines, start = 1):
-		    
-        line = line.rstrip()
-        new_line = line
-		
-        if params.ignore_case == True:
-            new_line = new_line.lower()
-            params.pattern = params.pattern.lower()
-            
-        if params.invert == False:
-              
-            if big_tomato(new_line, params.pattern):
-                appropriate.append(idx)
-                for i in range(after + before + 1):
-                    j = idx - before + i         
-                    if j > 0 and j <= len(lines) and j > end:
-                        output_index = j
-                        output_lines[output_index] = lines[j - 1]
-                end = j                         #переменная для того, чтобы не брать строки
-                                                #из других блоков
-        else:               #аналогичный блок, только для инверта
-          
-            if  not big_tomato(new_line, params.pattern):
-                appropriate.append(idx)
-                for i in range(after + before + 1):
-                    j = idx - before + i         
-                    if j > 0 and j <= len(lines) and j > end:
-                        output_index = j
-                        output_lines[output_index] = lines[j - 1]
-                        #output_lines.append(lines[j-1])
-                end = j    
     
+        if after_count:
+            output_lines.update({idx: line})
+            after_count -= 1
+            
+        line = line.rstrip()
+        
+        arr.append({idx: line})
+        if len(arr) > before + 1:
+            arr = arr[1:]
+            
+        if search_stars(line, params.pattern, params):
+            appropriate.append(idx)
+            for elem in arr:
+                output_lines.update(elem)
+            after_count = after   
+
     if params.count == True:
         output(str(len(appropriate)))
-
-    else: 
+    
+    else:
         for key in output_lines:   
             if params.line_number == True:
                 decorator = ':'
@@ -88,9 +87,7 @@ def grep(lines, params):
                 decorator = str(key) + decorator
             else:
                 decorator = ''
-                    
             output(decorator + output_lines[key])
-            
              
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
