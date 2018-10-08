@@ -26,7 +26,7 @@ def search_stars(line, pattern, params):                  #функция пои
                                                           #с учетом звездочек 
     if params.ignore_case == True:
         line = line.lower()
-        params.pattern = params.pattern.lower()
+        pattern = pattern.lower()
         
     pattern = pattern.strip('*')                            
     if pattern == '':
@@ -34,6 +34,8 @@ def search_stars(line, pattern, params):                  #функция пои
     k = 0
     arr = pattern.split('*')
     for i in range(len(arr)):
+        if arr[i] == '':
+            continue
         if not search(line[k:], arr[i], k, params)['result']:            
             if params.invert == False:
                 return False      
@@ -91,7 +93,8 @@ def grep(lines, params):
 
     if params.count == True:
         output(str(main_counter))
-             
+    
+    
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
     parser.add_argument(
