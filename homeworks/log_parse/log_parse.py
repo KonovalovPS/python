@@ -71,7 +71,8 @@ def parser(
     else:    
         for elem, count in counter.most_common(5):
             output_arr.append(count)   
-            
+    
     print(output_arr)
+    return output_arr  
 
 parser()
