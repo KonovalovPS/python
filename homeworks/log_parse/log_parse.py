@@ -1,36 +1,14 @@
 # -*- encoding: utf-8 -*-
 from collections import defaultdict, Counter
 from dateutil.parser import parse
-import is_true      #функция из первого ДЗ, чтобы отсеять строки не являющиеся записями об обращении к серверу
+import re
 import datetime
 
-def get_time(s):
-    return parse(s[s.index('[') + 1 : s.index(']')])
-    
-def get_url(s):
-    start = s.index('://')
-    s = s[ start + 3 : s.index(' ', start)]
-    if '?' in s:
-        s = s[: s.index('?')]
-    return s
-    
-def get_type(s):
-    start = s.index('"')
-    return s[start + 1 : s.index(' ', start)]
-    
 def del_www(url):
     if url[:4] == 'www.':
         url = url[4:]
-    return url
+    return url    
     
-def get_response_time(s):
-    return int(s.split()[-1])
-    
-def is_it_a_file(s):
-    if get_url(s)[-1] == '/':
-        return False
-    return True
-
 def parser(
     ignore_files=False,
     ignore_urls=[],
@@ -46,23 +24,31 @@ def parser(
     f = open('log.log')
     counter = Counter()
     for line in f:
-        if is_true.is_true(line): 
-            time = get_time(line)
-            type = get_type(line)
-            url = get_url(line)   
-            response_time = get_response_time(line)
-            is_file = is_it_a_file(line)
-            if ignore_www:
-                url = del_www(url)
+        
+        elements = re.findall(r'(\d+/.+/\d{4} \d{2}:\d{2}:\d{2})] "(\S+) .+://(\S+) .+" (\d+) (\d+)', line)
+        if not len(elements) or len(elements[0]) != 5:
+            continue
             
-            if (start_at == None or time >= start_at) and\
-            (stop_at == None or time <= stop_at) and\
-            url not in ignore_urls and\
-            (type == request_type or request_type == None) and\
-            (ignore_files == False or is_file == False):
-                counter[url] += 1
-                most_slowly[url][0] += 1
-                most_slowly[url][1] += response_time
+        time = parse(elements[0][0])
+        req_type = elements[0][1]
+        url = elements[0][2]
+        response_time = int(elements[0][4])
+
+        is_file = False
+        if url[-1] != '/' and re.findall(r'\.\w{3,4}', url[-5:]):
+            is_file = True
+            
+        if ignore_www:
+            url = del_www(url)
+            
+        if (start_at == None or time >= parse(start_at)) and\
+        (stop_at == None or time <= parse(stop_at)) and\
+        url not in ignore_urls and\
+        (req_type == request_type or request_type == None) and\
+        (ignore_files == False or is_file == False):
+            counter[url] += 1
+            most_slowly[url][0] += 1
+            most_slowly[url][1] += response_time
                 
     if slow_queries == True:
         for each in most_slowly:
