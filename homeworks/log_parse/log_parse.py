@@ -25,14 +25,14 @@ def parser(
     counter = Counter()
     for line in f:
         
-        elements = re.findall(r'(\d+/.+/\d{4} \d{2}:\d{2}:\d{2})] "(\S+) .+://(\S+) .+" (\d+) (\d+)', line)
-        if not len(elements) or len(elements[0]) != 5:
+        elements = re.findall(r'(\d+/.+/\d{4} \d{2}:\d{2}:\d{2})] "(\S+) .+://(\S+) .+" \d+ (\d+)', line)
+        if not len(elements) or len(elements[0]) != 4:
             continue
             
         time = parse(elements[0][0])
         req_type = elements[0][1]
         url = elements[0][2]
-        response_time = int(elements[0][4])
+        response_time = int(elements[0][3])
 
         is_file = False
         if url[-1] != '/' and re.findall(r'\.\w{3,4}', url[-5:]):
