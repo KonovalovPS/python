@@ -47,14 +47,24 @@ class TextHistory:
         if to_version == None:
             max_key += 1
             to_version = max_key
-        if from_version < 0 or to_version > max_key or to_version < from_version:
+        if from_version < 0 or to_version > max_key or to_version < from_version:   
             raise ValueError('Недопустимые версии')
         arr = []
         for key in self.hist:
             if from_version < key < to_version:
-                arr.append(self.hist[key])
+                obj = self.hist[key]
+                if (arr and isinstance(obj, DeleteAction) and isinstance(last_obj, DeleteAction)  
+                and obj.pos <= last_obj.pos and obj.pos + last_obj.length >= last_obj.pos):
+                    arr.pop()
+                    new_obj = DeleteAction(obj.pos, last_obj.length + obj.length, last_obj.from_version, obj.to_version)
+                    arr.append(new_obj)
+                    obj = new_obj
+                else:
+                    arr.append(obj)
+                
+                last_obj = obj
         return arr
-    
+        
 class Action:
     def __init__(self, from_version, to_version):
         self.from_version = from_version
@@ -66,7 +76,6 @@ class InsertAction(Action):
         self.pos = pos
         super().__init__(from_version, to_version)
         
-        
     def apply(self, text):
         if self.pos==None:
             self.pos = len(self.text)
@@ -76,7 +85,7 @@ class InsertAction(Action):
         return text
         
     def __repr__(self):
-        return 'InsertAction({!r}, {!r})'.format(self.pos, self.text)
+        return 'InsertAction({!r}, {!r}, {!r}, {!r})'.format(self.pos, self.text, self.from_version, self.to_version)
         
 class ReplaceAction(Action):
     def __init__(self, pos, text, from_version, to_version):
@@ -93,7 +102,7 @@ class ReplaceAction(Action):
         return text
 
     def __repr__(self):
-        return 'ReplaceAction({!r}, {!r})'.format(self.pos, self.text)
+        return 'ReplaceAction({!r}, {!r}, {!r}, {!r})'.format(self.pos, self.text, self.from_version, self.to_version)
     
 class DeleteAction(Action):
     def __init__(self, pos, length, from_version, to_version):
@@ -108,4 +117,4 @@ class DeleteAction(Action):
         return text
     
     def __repr__(self):
-        return 'DeleteAction({!r}, {!r})'.format(self.pos, self.length)
+        return 'DeleteAction({!r}, {!r}, {!r}, {!r})'.format(self.pos, self.length, self.from_version, self.to_version)
