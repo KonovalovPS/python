@@ -52,42 +52,10 @@ class TextHistory:
         arr = []
         for key in self.hist:
             if from_version < key < to_version:
-                arr.append(self.hist[key])               
-        
-        
-        if arr:
-            optimize_arr = [arr[0]]
-            last_obj = arr[0]
-            for each in arr[1:]:
-                obj = each
-                if (isinstance(obj, DeleteAction) and isinstance(last_obj, DeleteAction)
-                and obj.pos <= last_obj.pos and obj.pos + last_obj.length >= last_obj.pos):
-                    optimize_arr.pop()
-                    new_obj = DeleteAction(obj.pos, last_obj.length + obj.length, last_obj.from_version, obj.to_version)
-                    optimize_arr.append(new_obj)
-                    obj = new_obj
-                    
-                elif isinstance(obj, InsertAction) and isinstance(last_obj, InsertAction):
-                    if obj.pos == last_obj.pos + len(last_obj.text):
-                        optimize_arr.pop()
-                        new_obj = InsertAction(last_obj.pos, last_obj.text + obj.text, last_obj.from_version, obj.to_version)
-                        optimize_arr.append(new_obj)
-                        obj = new_obj
-                        
-                    elif obj.pos == last_obj.pos:
-                        optimize_arr.pop()
-                        new_obj = InsertAction(last_obj.pos, obj.text + last_obj.text, last_obj.from_version, obj.to_version)
-                        optimize_arr.append(new_obj)
-                        obj = new_obj
-                        
-                    else:
-                        optimize_arr.append(obj)
-                else:
-                    optimize_arr.append(obj)
-                    
-                last_obj = obj
+                arr.append(self.hist[key])          
                 
-            arr = optimize_arr
+        if arr:
+            arr = optimization(arr)
             
         return arr
 
@@ -144,3 +112,39 @@ class DeleteAction(Action):
     
     def __repr__(self):
         return 'DeleteAction({!r}, {!r}, {!r}, {!r})'.format(self.pos, self.length, self.from_version, self.to_version)
+        
+        
+def optimization(arr):
+    optimize_arr = [arr[0]]
+    last_obj = arr[0]
+    for each in arr[1:]:
+        obj = each
+        if (isinstance(obj, DeleteAction) and isinstance(last_obj, DeleteAction)
+        and obj.pos <= last_obj.pos and obj.pos + last_obj.length >= last_obj.pos):
+            optimize_arr.pop()
+            new_obj = DeleteAction(obj.pos, last_obj.length + obj.length, last_obj.from_version, obj.to_version)
+            optimize_arr.append(new_obj)
+            obj = new_obj
+            
+        elif isinstance(obj, InsertAction) and isinstance(last_obj, InsertAction):
+            if obj.pos == last_obj.pos + len(last_obj.text):
+                optimize_arr.pop()
+                new_obj = InsertAction(last_obj.pos, last_obj.text + obj.text, last_obj.from_version, obj.to_version)
+                optimize_arr.append(new_obj)
+                obj = new_obj
+                
+            elif obj.pos == last_obj.pos:
+                optimize_arr.pop()
+                new_obj = InsertAction(last_obj.pos, obj.text + last_obj.text, last_obj.from_version, obj.to_version)
+                optimize_arr.append(new_obj)
+                obj = new_obj
+                
+            else:
+                optimize_arr.append(obj)
+        else:
+            optimize_arr.append(obj)
+            
+        last_obj = obj
+        
+    arr = optimize_arr
+    return arr
