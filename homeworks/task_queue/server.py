@@ -24,11 +24,10 @@ class TaskQueueServer:
                 data = current_connection.recv(2048)
                 if self.is_add(data):
                     queue_name = data.split()[1]
-                    if queue_name not in self.queue.keys():
-                        self.queue[queue_name] = Queue(*data.split())
-                        self.queue[queue_name].id = ''.join(random.choice(string.ascii_uppercase +
-                        string.ascii_lowercase +
-                        string.digits) for _ in range(32))
+                    if len(self.queue) == 0:
+                        self.queue[queue_name] = Queue(*data.split())#чето не то
+                    
+                    return 
                 else:
                     current_connection.send(b'no\n')
     
@@ -71,10 +70,13 @@ def parse_args():
     return parser.parse_args()
 
 class Queue:
-    def __init__(queue_name, length, data):
+    def __init__(queue_name, length, data):   #мб это таск, а не за очередь
         self.queue_name = queue_name
         self.length = length
         self.data = [data]
+        self.id = ''.join(random.choice(string.ascii_uppercase +
+                        string.ascii_lowercase +
+                        string.digits) for _ in range(32))
         
     def add(data):
         self.data.append(data)
