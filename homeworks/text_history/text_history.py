@@ -148,3 +148,6 @@ def optimization(arr):
         
     arr = optimize_arr
     return arr
+
+h = TextHistory('qqqq')
+print(h.text)
