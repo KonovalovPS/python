@@ -19,118 +19,73 @@ class Task:
 
     def get_dict(self):
         return {self.id:{'length': self.length, 'data': self.data, 'status': self.status}}
- 
 
-class Commands():
-    def add(self, data, current_connection):
-        queue_name = data.split()[1]
-        if queue_name not in self.queues.keys():
-            self.queues[queue_name] = OrderedDict()
+class Queue:
+    def __init__(self, data):
+        self.queue = OrderedDict()
+
+    def add(self, data, timeout):
+        queue = self.queue
+        self._timeout_check(queue, timeout)
         new_task = Task(*data.split()[2:])
-        self.queues[queue_name].update(new_task.get_dict())
-        current_connection.send(bytes(new_task.id, encoding = 'utf8'))
+        queue.update(new_task.get_dict())
+        return bytes(new_task.id, encoding = 'utf8')
     
-    def get(self, data, current_connection):
-        queue_name = data.split()[1]
-        if queue_name in self.queues.keys():
-            queue = self.queues[queue_name]
-            self.timeout_check(queue)
-            for task in queue:
-                if queue[task]['status'] == 'waiting':
-                    queue[task]['status'] = 'received'
-                    queue[task]['time_get'] = datetime.now()
-                    current_connection.send \
-                    (bytes(f'{task} {queue[task]["length"]} {queue[task]["data"]}', encoding = 'utf8'))
-                    break
-            else:
-                current_connection.send(b'NONE')
+    def get(self, data, timeout):
+        queue = self.queue
+        self._timeout_check(queue, timeout)
+        for task in queue:
+            if queue[task]['status'] == 'waiting':
+                queue[task]['status'] = 'received'
+                queue[task]['time_get'] = datetime.now()
+                return bytes(f'{task} {queue[task]["length"]} {queue[task]["data"]}', encoding = 'utf8')
+                break
         else:
-            current_connection.send(b'NONE')
+            return b'NONE'
 
-    def ack(self, data, current_connection):
-        queue_name = data.split()[1]
+    def ack(self, data, timeout):
         id = data.split()[2].decode()
-        if queue_name in self.queues.keys():
-            queue = self.queues[queue_name]
-            self.timeout_check(queue)
-            if id in queue.keys() and queue[id]['status'] == 'received':
-                queue.pop(id)
-                current_connection.send(b'YES')
-            else:
-                current_connection.send(b'NO')
+        queue = self.queue
+        self._timeout_check(queue, timeout)
+        if id in queue.keys() and queue[id]['status'] == 'received':
+            queue.pop(id)
+            return b'YES'
         else:
-            current_connection.send(b'NONE')   
+            return b'NO'
+  
             
-    def save(self, current_connection):
-        file = shelve.open('data')
-        file['queues'] = self.queues
-        file.close()
-        current_connection.send(b'OK')
+    def func_in(self, data, timeout):
+        queue = self.queue
+        self._timeout_check(queue, timeout)
+        id = data.split()[2].decode()
+        if id in queue.keys():
+            return b'YES'
+        else:
+            return b'NO'
+            
         
-
-class SupportComands():
-    def timeout_check(self, queue):   
+    def _timeout_check(self, queue, timeout):   
         counter = 2
         for idx in queue:
             if queue[idx]['status'] == 'received':
-                if (datetime.now() - queue[idx]['time_get']).total_seconds() > self.timeout:
+                if (datetime.now() - queue[idx]['time_get']).total_seconds() > timeout:
                     queue[idx]['status'] = 'waiting'
                 else:
                     break
             else:
                 counter -= 1
                 if counter == 0:
-                    break
-
-    def recvall(self, current_connection):
-        data = b''
-        while True:
-            buffer = current_connection.recv(2048)
-            data += buffer
-            if len(buffer) < 2048:
-                break
-        return data
+                    break        
         
-    def what_function(self, string):
-        string = string.decode()
-        if re.fullmatch(r'ADD \S+ \d+ \S+\s{0,1}', string):
-            return 'ADD'
-            
-        elif re.fullmatch(r'GET \S+\s{0,1}', string):
-            return 'GET'
-            
-        elif re.fullmatch(r'ACK \S+ \S+\s{0,1}', string):
-            return 'ACK'
-    
-        elif re.fullmatch(r'IN \S+ \S+\s{0,1}', string):
-            return 'IN'
-            
-        elif re.fullmatch(r'SAVE\s{0,1}', string):    
-            return 'SAVE'
-            
-    def func_in(self, data, current_connection):
-        queue_name = data.split()[1]
-        queue = self.queues[queue_name]
-        self.timeout_check(queue)
-        id = data.split()[2].decode()
-        if queue_name in self.queues.keys():
-            if id in queue.keys():
-                current_connection.send(b'YES')
-            else:
-                current_connection.send(b'NO')
-        else:
-            current_connection.send(b'NONE')
-        
-       
-class TaskQueueServer(Commands, SupportComands):
+class TaskQueueServer:
     def __init__(self, ip, port, path, timeout):
         self.ip = ip
         self.port = port
         self.path = path
         self.timeout = timeout
-        self.queues = self.get_queues()
+        self.queues = self._get_queues()
         
-    def get_queues(self):
+    def _get_queues(self):
         file = shelve.open('data')
         if file:
             queues = file['queues']
@@ -146,30 +101,73 @@ class TaskQueueServer(Commands, SupportComands):
         while True:
             current_connection, address = s.accept()
             while True:
-                data = self.recvall(current_connection)
+                data = self._recvall(current_connection)
                 if not data:
                     break
-                command = self.what_function(data)
-                if command == 'ADD':
-                    self.add(data, current_connection)
+                command = self._what_function(data)
+                
+                
+                if command == 'SAVE':
+                    current_connection.send(self._save())
+                    continue
                     
-                elif command == 'GET':
-                    self.get(data, current_connection)                
+                queue_name = data.split()[1]
+                
+                if command == 'ADD':
+                    if queue_name not in self.queues.keys():
+                        self.queues[queue_name] = Queue(data)
+                    current_connection.send(self.queues[queue_name].add(data, self.timeout))
+                    continue
+                    
+                elif queue_name not in self.queues.keys() and command in ['GET', 'ACK', 'IN']:
+                    current_connection.send(b'NONE')
+                    continue
+                    
+                elif command == 'GET':               
+                        current_connection.send(self.queues[queue_name].get(data, self.timeout))              
                     
                 elif command == 'ACK':
-                    self.ack(data, current_connection)   
+                    current_connection.send(self.queues[queue_name].ack(data, self.timeout))   
                         
                 elif command == 'IN':
-                    self.func_in(data, current_connection) 
-                    
-                elif command == 'SAVE':
-                    self.save(current_connection)
+                    current_connection.send(self.queues[queue_name].func_in(data, self.timeout))
                     
                 else:
                     current_connection.send(b'ERROR')
             current_connection.close()
         
+    def _save(self):
+        file = shelve.open('data')
+        file['queues'] = self.queues
+        file.close()
+        return b'OK'
 
+    def _recvall(self, current_connection):
+        data = b''
+        while True:
+            buffer = current_connection.recv(2048)
+            data += buffer
+            if len(buffer) < 2048:
+                break
+        return data
+        
+    def _what_function(self, string):
+        string = string.decode()
+        if re.fullmatch(r'ADD \S+ \d+ \S+\s{0,1}', string):
+            return 'ADD'
+            
+        elif re.fullmatch(r'GET \S+\s{0,1}', string):
+            return 'GET'
+            
+        elif re.fullmatch(r'ACK \S+ \S+\s{0,1}', string):
+            return 'ACK'
+    
+        elif re.fullmatch(r'IN \S+ \S+\s{0,1}', string):
+            return 'IN'
+            
+        elif re.fullmatch(r'SAVE\s{0,1}', string):    
+            return 'SAVE'
+        
 def parse_args():
     parser = argparse.ArgumentParser(description='This is a simple task queue server with custom protocol')
     parser.add_argument(
