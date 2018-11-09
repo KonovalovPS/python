@@ -105,7 +105,9 @@ class TaskQueueServer:
                 if not data:
                     break
                 command = self._what_function(data)
-                
+                if command not in ['GET', 'ACK', 'IN', 'SAVE', 'ADD']:
+                    current_connection.send(b'ERROR')
+                    continue
                 
                 if command == 'SAVE':
                     current_connection.send(self._save())
@@ -119,7 +121,7 @@ class TaskQueueServer:
                     current_connection.send(self.queues[queue_name].add(data, self.timeout))
                     continue
                     
-                elif queue_name not in self.queues.keys() and command in ['GET', 'ACK', 'IN']:
+                elif queue_name not in self.queues.keys():
                     current_connection.send(b'NONE')
                     continue
                     
@@ -131,9 +133,6 @@ class TaskQueueServer:
                         
                 elif command == 'IN':
                     current_connection.send(self.queues[queue_name].func_in(data, self.timeout))
-                    
-                else:
-                    current_connection.send(b'ERROR')
             current_connection.close()
         
     def _save(self):
