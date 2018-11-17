@@ -21,8 +21,8 @@ def whenthen(func):
         
         def __call__(self, *args, **kwargs):
             if len(self.lst_when) == len(self.lst_then):
-                for idx in range(len(self.lst_when)):
-                    if self.lst_when[idx](*args, **kwargs):
+                for idx, item in enumerate(self.lst_when):
+                    if item(*args, **kwargs):
                         return self.lst_then[idx](*args, **kwargs)
                     return self.func(*args, **kwargs)
             else:

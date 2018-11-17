@@ -1,7 +1,7 @@
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 import os
 
-class DirDict(Mapping):
+class DirDict(MutableMapping):
 
     def __init__(self, path):
         if os.path.isdir(path):
@@ -30,3 +30,6 @@ class DirDict(Mapping):
     def __setitem__(self, file_name, value):
         with open('{}/{}'.format(self.path, file_name), 'w') as f:
             f.write(value)
+            
+    def __delitem__(self, file_name):
+        os.remove(file_name)

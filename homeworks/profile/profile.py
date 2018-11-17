@@ -1,7 +1,8 @@
 import datetime
+from inspect import isfunction, isclass
 
 def profile(obj):
-    if str(type(obj)) == "<class 'function'>":
+    if isfunction(obj):
         def new_func(*args, **kwargs):
             func = obj
             print('`{}` started'.format(func.__name__))
@@ -14,7 +15,7 @@ def profile(obj):
         return new_func
 
 
-    if str(type(obj)) == "<class 'type'>":
+    if isclass(obj):
         klass = obj
         for attr_name in klass.__dict__:
             attr = getattr(klass, attr_name)
