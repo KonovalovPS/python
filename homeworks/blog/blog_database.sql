@@ -22,22 +22,6 @@ CREATE TABLE IF NOT EXISTS blogs (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- CREATE TABLE IF NOT EXISTS articles (
-    -- id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    -- headline VARCHAR(31) NOT NULL,
-    -- text VARCHAR(2047)
--- );
-
--- CREATE TABLE IF NOT EXISTS posts (
-    -- id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    -- article_id INTEGER NOT NULL,
-    -- user_id INTEGER NOT NULL,
-    -- blog_id INTEGER NOT NULL,
-    -- FOREIGN KEY (article_id) REFERENCES articles(id),
-    -- FOREIGN KEY (user_id) REFERENCES users(id),
-    -- FOREIGN KEY (blog_id) REFERENCES blogs(id)
--- );
-
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     headline VARCHAR(31) NOT NULL,
@@ -55,7 +39,7 @@ CREATE TABLE IF NOT EXISTS blogs_posts (
 CREATE TABLE IF NOT EXISTS comments (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     comment_text VARCHAR(511),
-    user_id INTEGER,
+    user_id INTEGER NOT NULL,
     parent_id INTEGER,
     parent VARCHAR(7)
 );

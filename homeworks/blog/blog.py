@@ -39,8 +39,6 @@ class Community:
             print('Такого пользователя с таким паролем не существует')
             return
         print('Здравствуйте, {}'.format(result[3]))
-        #self.user_id = int(result[0])
-        #self.autorized_users.append(int(result[0]))
         self.close_connect(conn)
         session_id = int(result[0])
         return session_id
@@ -210,6 +208,7 @@ class Community:
                                 (comment_text, user_id, parent_id, parent)
                                 values('%s', %s, %s, '%s')
                                 """ % (text, session_id, parent_id, parent))
+                print(f'коммент {text} опубликован')
         self.close_connect(conn)
         
     def show_user_comments(self, post_id, session_id):
@@ -225,25 +224,60 @@ class Community:
         print(comments_arr)
         return comments_arr
         
+    def show_comment_branch(self, comment_id):
+        """Показать ветку комментов"""
+        conn, cursor = self.connect()
+        cursor.execute("""SELECT * FROM comments
+                        WHERE id = %s""" % comment_id)
+        comment_tuple = cursor.fetchone()
+        if comment_tuple == None:
+            print('несуществующий коммментарий')
+            self.close_connect(conn)
+            return
+        child_id = comment_tuple[0]
+        print(comment_tuple[1])
         
-hl = 'AAAAOOOOOOuu'
-text = '!!!!!!MOYA OBORONAAA'
-comment_text = 'COMMMMMENT TEXT'
-
-co = Community()
-co.create_blog('Miami')
-co.add_user('aaa', '0000','Pavel','Petrov', 23)
-co.add_user('qqqqq', '0000','Pavel','Ivanov', 23)
-session = co.log_in('aaa', '0000')
-co.create_blog('Tashkent', session)
-co.create_blog('Abidzhan', session)
-#co.delete_blog('Adventures', session)
-print('-'*70)
-co.create_post(hl, text, (4, 3), session)
-print('-'*70)
-# co.edit_post(13, session, 'new_headline', 'NEW_TEXT')
-# co.delete_post(13, session)
-#co.users_list()
-# print('-'*70)
-#co.create_comment('MMMMMM', 4, 'comment', session)
-co.show_user_comments(3, session)
+        def get_comments(comment_id, indent = ''):
+            indent += '   '
+            cursor.execute("""SELECT * FROM comments
+                           WHERE parent_id = %s""" % comment_id)
+            comments = cursor.fetchall()
+            if comments == None:
+                print('несуществующий коммментарий')
+                return
+            for each in comments:
+                print (f'{indent}{each[1]}')
+                comment_id = each[0]
+                get_comments(comment_id, indent)
+        get_comments(child_id)
+            
+        self.close_connect(conn)
+        
+    def show_comments(self, users_tuple, blog_id):
+        """получения всех комментариев для 1 или 
+        нескольких указанных пользователей из указанного блога"""
+        conn, cursor = self.connect()
+        cursor.execute("""SELECT * FROM blogs_posts
+                       WHERE blog_id = %s""" % blog_id)
+        blogs_posts = cursor.fetchall() # список постов этого блога
+        for user_id in users_tuple:
+            cursor.execute("""SELECT * FROM users
+                           WHERE id = %s""" % user_id)
+            user = cursor.fetchone()
+            if user == None:
+                return
+            print(f'{user[1]}: ')
+            for each in blogs_posts:
+                cursor.execute("""SELECT * FROM comments
+                               WHERE id = %s and user_id = %s
+                               """ % (each[1], user_id))
+                post = cursor.fetchone()
+                if post == None:
+                    continue
+                print(f'--{post[1]}')
+        
+        self.close_connect(conn)
+        
+        
+#Community().show_comment_branch(9000)
+#Community().show_comments(range(1, 200), 62)
