@@ -1,0 +1,13 @@
+data_dir: "/tmp/async_file_storage"
+port: 8000
+save_files: True
+nodes:
+  -
+    url: "http://localhost:8001"
+    save_files: True
+  -
+    url: "http://localhost:8002"
+    save_files: False
+  -
+    url: "http://localhost:8003"
+    save_files: True
