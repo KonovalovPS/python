@@ -1,0 +1,31 @@
+{% extends 'blog/base.html' %}
+
+{% block content%}
+
+<div class = "login">
+{% if user.is_authenticated %}
+     <li>User: {{ user.get_username }}</li>
+     <li><a href="{% url 'blog:logout'%}?next={{request.path}}">Logout</a></li>   
+   {% else %}
+     <li><a href="{% url 'blog:login'%}?next={{request.path}}">Login</a></li>   
+   {% endif %}
+</div>
+
+<h2>Мои блоги</h2>
+<ul>
+    {% if not username %}
+        <p>Войдите в систему, чтобы создать блог</p>
+    {% elif not blogs %}   
+        <p>У вас пока что нет своих блогов</p>
+    {% endif %}
+    {% for blog in blogs %}
+        <li><a href="{% url 'blog:blog' blog.pk %}">{{blog.blog_name}}</a></li>
+    {% endfor %}
+    
+    
+</ul>
+<a href="{% url 'blog:blog_add' %}">Создать новый блог</a>
+<p><a href="{% url 'blog:index' %}">Все блоги</a></p>
+
+
+{% endblock %}

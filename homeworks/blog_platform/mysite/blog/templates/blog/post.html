@@ -1,0 +1,54 @@
+{% extends 'blog/base.html' %}
+
+
+{% block content%}
+
+<div class = "login">
+{% if user.is_authenticated %}
+     <li>User: {{ user.get_username }}</li>
+     <li><a href="{% url 'blog:logout'%}?next={{request.path}}">Logout</a></li>   
+   {% else %}
+     <li><a href="{% url 'blog:login'%}?next={{request.path}}">Login</a></li>   
+     <li><a href="{% url 'blog:registration' %}">Registrarion</a></li>
+   {% endif %}
+</div>
+
+<h2>{{post.headline}}</h2>
+
+<p>{{post.text}}</p>
+<br>
+<h4>Comments:</h4>
+{% for comment in comments %}
+    <span>{{comment.user_id}}</span>
+    <span>post date: {{comment.pub_date}}</span>
+    <p class = 'comment'>{{comment.comment_text}}</p>
+{% endfor %}
+
+
+<div class="pagination">
+    <span class="step-links">
+        {% if comments.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ comments.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ comments.number }} of {{ comments.paginator.num_pages }}.
+        </span>
+
+        {% if comments.has_next %}
+            <a href="?page={{ comments.next_page_number }}">next</a>
+            <a href="?page={{ comments.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+
+{% if user.username == post.user_id.username %}
+    <p><a href="{{post_edit_url}}">Редактировать статью</a></p>
+{% endif %}
+
+<a href="{% url 'blog:comment_add' post.pk%}">Добавить комментарий</a>
+
+{% endblock %}
+
